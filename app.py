@@ -44,7 +44,7 @@ plt.style.use('seaborn-v0_8')
 # CONFIGURATION & CONSTANTS
 # ==============================================================================
 
-FOLDER_PATH = '/data'
+FOLDER_PATH = '/data/'
 SHAPE_ADMIN = 'ADMINISTRASI_AR_KECAMATAN.shp'
 EXCEL_PENDUDUK = 'Proyeksi Penduduk Kota Yogyakarta menurut Kecamatan dan Jenis Kelamin, 2015 – 2025, 2025.xlsx'
 KMZ_FILENAME = 'BANK SAMPAH.kmz'
@@ -1802,3 +1802,4 @@ if __name__ == "__main__":
     else:
 
         main()
+
