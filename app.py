@@ -1,4 +1,4 @@
-%%writefile app.py
+
 # ==============================================================================
 # SIGAP SAMPAH JOGJA - ADVANCED VERSION
 # Sistem Informasi Geografis Analisis Potensi Sampah Kota Yogyakarta
@@ -1800,4 +1800,5 @@ if __name__ == "__main__":
         Pastikan folder `{FOLDER_PATH}` ada di repositori dan berisi semua file yang diperlukan.
         """)
     else:
+
         main()
