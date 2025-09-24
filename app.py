@@ -1459,7 +1459,11 @@ def show_data_export_tools(gdf_kecamatan: gpd.GeoDataFrame, gdf_bank_sampah: gpd
 
             if not gdf_bank_sampah.empty:
                 if st.button("📥 Download Bank Sampah Excel"):
-                    bank_output = gdf_bank_sampah.to_excel(index=False)
+                    import io # Pastikan io diimpor jika belum
+                    output_bank_sampah = io.BytesIO() # 1. Buat buffer
+                    gdf_bank_sampah.to_excel(output_bank_sampah, index=False, engine='openpyxl')
+                    output_bank_sampah.seek(0) 
+
                     st.download_button(
                         label="💾 Download Data Bank Sampah.xlsx",
                         data=bank_output,
@@ -1802,5 +1806,6 @@ if __name__ == "__main__":
     else:
 
         main()
+
 
 
