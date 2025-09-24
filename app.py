@@ -1126,6 +1126,13 @@ def show_waste_bank_finder(gdf_bank_sampah: gpd.GeoDataFrame, gdf_kecamatan: gpd
         else:
             st.success("✅ Tidak ada gap layanan yang signifikan terdeteksi")
 
+import streamlit as st
+import geopandas as gpd
+import pandas as pd
+import numpy as np
+import plotly.express as px
+import plotly.graph_objects as go
+
 def show_prediction_analysis(gdf_kecamatan: gpd.GeoDataFrame):
     """Advanced prediction and scenario analysis."""
 
@@ -1135,6 +1142,7 @@ def show_prediction_analysis(gdf_kecamatan: gpd.GeoDataFrame):
 
     tab1, tab2, tab3 = st.tabs(["📈 Proyeksi Sampah", "🎛️ Analisis Skenario", "🎯 Rekomendasi"])
 
+    # --- Tab 1: Proyeksi Sampah ---
     with tab1:
         st.subheader("📊 Proyeksi Produksi Sampah 5 Tahun ke Depan")
 
@@ -1156,7 +1164,7 @@ def show_prediction_analysis(gdf_kecamatan: gpd.GeoDataFrame):
 
             for _, row in gdf_kecamatan.iterrows():
                 projected_waste = (row['Estimated_Daily_Waste_Ton'] * pop_multiplier *
-                                 (1 + (row['Jml_Niaga'] / 1000) * (comm_multiplier - 1)))
+                                   (1 + (row['Jml_Niaga'] / 1000) * (comm_multiplier - 1)))
 
                 projection_data.append({
                     'Year': year,
@@ -1185,7 +1193,6 @@ def show_prediction_analysis(gdf_kecamatan: gpd.GeoDataFrame):
             yaxis_title="Produksi Sampah (Ton/Hari)",
             template="plotly_white"
         )
-
         st.plotly_chart(fig_proj, use_container_width=True)
 
         # Top contributors in 2030
@@ -1202,6 +1209,7 @@ def show_prediction_analysis(gdf_kecamatan: gpd.GeoDataFrame):
         fig_top.update_xaxes(tickangle=45)
         st.plotly_chart(fig_top, use_container_width=True)
 
+    # --- Tab 2: Analisis Skenario (Blok tunggal yang sudah benar) ---
     with tab2:
         st.subheader("🎛️ Analisis Skenario Kebijakan")
 
@@ -1213,7 +1221,8 @@ def show_prediction_analysis(gdf_kecamatan: gpd.GeoDataFrame):
                 "waste_reduction": "♻️ Pengurangan Sampah 20%",
                 "bank_expansion": "🏦 Ekspansi Bank Sampah",
                 "comprehensive": "🎯 Strategi Komprehensif"
-            }[x]
+            }[x],
+            key="scenario_selector" # Menambahkan key untuk memastikan keunikan
         )
 
         scenario_results = gdf_kecamatan.copy()
@@ -1247,7 +1256,7 @@ def show_prediction_analysis(gdf_kecamatan: gpd.GeoDataFrame):
 
         current_total = gdf_kecamatan['Estimated_Daily_Waste_Ton'].sum()
         scenario_total = scenario_results['Scenario_Waste'].sum()
-        reduction = ((current_total - scenario_total) / current_total) * 100
+        reduction = ((current_total - scenario_total) / current_total) * 100 if current_total > 0 else 0
 
         with col1:
             st.metric("Total Sampah Saat Ini", f"{current_total:.1f} ton/hari")
@@ -1263,7 +1272,6 @@ def show_prediction_analysis(gdf_kecamatan: gpd.GeoDataFrame):
                 {'Kecamatan': row['WADMKC'], 'Type': 'Saat Ini', 'Value': row['Estimated_Daily_Waste_Ton']},
                 {'Kecamatan': row['WADMKC'], 'Type': 'Skenario', 'Value': row['Scenario_Waste']}
             ])
-
         comparison_df = pd.DataFrame(comparison_data)
 
         fig_comparison = px.bar(
@@ -1277,82 +1285,8 @@ def show_prediction_analysis(gdf_kecamatan: gpd.GeoDataFrame):
         )
         fig_comparison.update_xaxes(tickangle=45)
         st.plotly_chart(fig_comparison, use_container_width=True)
-    with tab2:
-        st.subheader("🎛️ Analisis Skenario Kebijakan")
-
-        scenario = st.selectbox(
-            "Pilih Skenario:",
-            ["baseline", "waste_reduction", "bank_expansion", "comprehensive"],
-            format_func=lambda x: {
-                "baseline": "📊 Baseline - Kondisi Saat Ini",
-                "waste_reduction": "♻️ Pengurangan Sampah 20%",
-                "bank_expansion": "🏦 Ekspansi Bank Sampah",
-                "comprehensive": "🎯 Strategi Komprehensif"
-            }[x]
-        )
-
-        scenario_results = gdf_kecamatan.copy()
-
-        if scenario == "waste_reduction":
-            scenario_results['Scenario_Waste'] = scenario_results['Estimated_Daily_Waste_Ton'] * 0.8
-            scenario_results['Scenario_Index'] = scenario_results['Indeks_Potensi_Sampah'] * 0.9
-            impact_desc = "Pengurangan sampah 20% melalui program 3R intensif"
-
-        elif scenario == "bank_expansion":
-            scenario_results['Scenario_Waste'] = scenario_results['Estimated_Daily_Waste_Ton']
-            scenario_results['Scenario_Index'] = scenario_results['Indeks_Potensi_Sampah'] * 0.95
-            scenario_results['Accessibility_Index'] = np.minimum(scenario_results['Accessibility_Index'] * 2, 1.0)
-            impact_desc = "Penambahan bank sampah meningkatkan aksesibilitas 2x lipat"
-
-        elif scenario == "comprehensive":
-            scenario_results['Scenario_Waste'] = scenario_results['Estimated_Daily_Waste_Ton'] * 0.7
-            scenario_results['Scenario_Index'] = scenario_results['Indeks_Potensi_Sampah'] * 0.8
-            scenario_results['Accessibility_Index'] = np.minimum(scenario_results['Accessibility_Index'] * 2.5, 1.0)
-            impact_desc = "Kombinasi pengurangan sampah 30% + ekspansi bank sampah"
-
-        else:  # baseline
-            scenario_results['Scenario_Waste'] = scenario_results['Estimated_Daily_Waste_Ton']
-            scenario_results['Scenario_Index'] = scenario_results['Indeks_Potensi_Sampah']
-            impact_desc = "Kondisi saat ini tanpa intervensi"
-
-        st.info(f"**Deskripsi Skenario:** {impact_desc}")
-
-        # Comparison metrics
-        col1, col2, col3 = st.columns(3)
-
-        current_total = gdf_kecamatan['Estimated_Daily_Waste_Ton'].sum()
-        scenario_total = scenario_results['Scenario_Waste'].sum()
-        reduction = ((current_total - scenario_total) / current_total) * 100
-
-        with col1:
-            st.metric("Total Sampah Saat Ini", f"{current_total:.1f} ton/hari")
-        with col2:
-            st.metric("Total Sampah Skenario", f"{scenario_total:.1f} ton/hari")
-        with col3:
-            st.metric("Pengurangan", f"{reduction:.1f}%", f"{current_total - scenario_total:.1f} ton/hari")
-
-        # Before/after comparison
-        comparison_data = []
-        for _, row in scenario_results.iterrows():
-            comparison_data.extend([
-                {'Kecamatan': row['WADMKC'], 'Type': 'Saat Ini', 'Value': row['Estimated_Daily_Waste_Ton']},
-                {'Kecamatan': row['WADMKC'], 'Type': 'Skenario', 'Value': row['Scenario_Waste']}
-            ])
-
-        comparison_df = pd.DataFrame(comparison_data)
-
-        fig_comparison = px.bar(
-            comparison_df,
-            x='Kecamatan',
-            y='Value',
-            color='Type',
-            barmode='group',
-            title=f"Perbandingan Produksi Sampah: Saat Ini vs {scenario.replace('_', ' ').title()}",
-            color_discrete_map={'Saat Ini': 'red', 'Skenario': 'green'}
-        )
-        fig_comparison.update_xaxes(tickangle=45)
-        st.plotly_chart(fig_comparison, use_container_width=True)
-
+    
+    # --- Tab 3: Rekomendasi Strategis ---
     with tab3:
         st.subheader("🎯 Rekomendasi Strategis")
 
@@ -1382,7 +1316,6 @@ def show_prediction_analysis(gdf_kecamatan: gpd.GeoDataFrame):
             "📱 **Teknologi:** Implementasi sistem monitoring real-time produksi sampah",
             "🎯 **Targeting:** Fokus program pengurangan sampah di cluster High-High"
         ]
-
         for rec in recommendations:
             st.markdown(rec)
 
@@ -1406,7 +1339,6 @@ def show_prediction_analysis(gdf_kecamatan: gpd.GeoDataFrame):
                 'Persentase sampah terdaur ulang'
             ]
         })
-
         st.dataframe(indicators, use_container_width=True)
 
 def show_data_export_tools(gdf_kecamatan: gpd.GeoDataFrame, gdf_bank_sampah: gpd.GeoDataFrame):
@@ -1806,6 +1738,7 @@ if __name__ == "__main__":
     else:
 
         main()
+
 
 
 
